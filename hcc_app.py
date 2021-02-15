@@ -1,7 +1,8 @@
-# TODO: cluster notes dict, plot analysis
-# TODO: Var Info feature for normal range info
+# TODO: finish var_dict with normal range values and description/possible indicators
 # TODO: pattern finding function for cluster vars
 # TODO: cluster model tab
+# TODO: create checkbox for var description/normal range info in cluster analysis
+# TODO: possibly look at DR on liver panel values
 
 # %reload_ext nb_black
 import pandas as pd
@@ -81,7 +82,6 @@ def main():
             "Class",
             ]
     st.set_option('deprecation.showPyplotGlobalUse', False)
-    
     #=========================================================================
     # DATA FUNCTIONS
     def load_data():
@@ -132,8 +132,18 @@ def main():
         for cat in cats:
             df[cat] = round(df[cat]).astype(int)
         return df
-    
-    # CLUSTERING FUNCTIONS
+    def scale_df(df):
+        # scale data for cluster
+        scaler = StandardScaler()
+        # looking at df with target var first
+        X_scaled = scaler.fit_transform(df)
+        X_scaled = pd.DataFrame(X_scaled, columns=df.columns, index=df.index)
+        return X_scaled
+    def create_dmat(scaled):
+        # distance matrix
+        dist = pdist(scaled, metric="cosine")
+        dmat = squareform(dist)
+        return dmat
     def kmed_cluster(df, k):
         # generate k random indices from distance matrix
         df2 = df.drop(columns="Class") 
@@ -171,95 +181,12 @@ def main():
         # counts = df.kmed.value_counts().index.sort_values(ascending=False)
         # group_df["count"] = counts
         return df, group_df, clusters, dmat
-    def kmed_predict(df, X, k=5):
-        # generate k random indices from distance matrix
-        # df = df.drop(columns="Class") 
-        # X = X.drop(columns="kmed")
-        # X = pd.DataFrame(X, columns=df.columns)
-        df = df.append(X)
-        X_scaled = scale_df(df)
-        dmat = create_dmat(X_scaled)
-
-        np.random.seed(42)
-        n_rows = dmat.shape[0]
-        init_medoids = np.random.randint(0, n_rows, k)
-        
-        # init_medoids
-        kmed = kmedoids(dmat, initial_index_medoids=init_medoids, data_type="distance_matrix")
-        kmed.process()
-
-        medoid_idxs = kmed.get_medoids()
-        # medoid_idxs
-
-        labels = kmed.predict(dmat)
-        df["kmed"] = labels
-        # print(df.kmed.value_counts())
-        # group_df = df.groupby("kmed").mean().sort_values("Class").style.background_gradient()
-
-        # casting kmed clusters to strings
-        df.kmed = df.kmed.astype(str)
-
-        # reordering cluster numbers by mortality rate
-        df.loc[(df.kmed == "3"), "kmed"] = 4
-        df.loc[(df.kmed == "0"), "kmed"] = 2
-        df.loc[(df.kmed == "1"), "kmed"] = 3
-        df.loc[(df.kmed == "4"), "kmed"] = 1
-        df.loc[(df.kmed == "2"), "kmed"] = 0
-
-        group_df = df.groupby("kmed").mean().style.background_gradient()
-        # counts = df.kmed.value_counts().index.sort_values(ascending=False)
-        # group_df["count"] = counts
-        output = df.head(-1)
-        return df
-    def scale_df(df):
-        # scale data for cluster
-        scaler = StandardScaler()
-        # looking at df with target var first
-        X_scaled = scaler.fit_transform(df)
-        X_scaled = pd.DataFrame(X_scaled, columns=df.columns, index=df.index)
-        return X_scaled
-    def create_dmat(scaled):
-        # distance matrix
-        dist = pdist(scaled, metric="cosine")
-        dmat = squareform(dist)
-        return dmat
-    
-    # PLOTTING FUNCTIONS
-    def plot_boxplot(var):
-        fig = go.Figure()
-        # for i in range(df.kmed.unique()):
-        fig.add_trace(
-            go.Box(
-                y=df[var],
-                x=df.kmed,
-                boxpoints=False,  # no data points
-                #     marker_color='rgb(9,56,125)',
-                #     line_color='rgb(9,56,125)'
-            )
-        )
-        st.plotly_chart(fig)
-    def plot_violin(var):
-        fig = go.Figure()
-        fig.add_trace(
-            go.Violin(
-                y=df[var],
-                x=df.kmed,
-            )
-        )
-        fig.update_traces(meanline_visible=True)
-
-        st.plotly_chart(fig)
-    def plot_barplot(var):
-        fig = go.Figure(data=[
-            go.Bar(name="Alive @ 1 year", x=df.kmed, y=df[df.Class == 1][var]),
-            go.Bar(name="Deceeased @ 1 year", x=df.kmed, y=df[df.Class == 0][var]),
-            ])
-        fig.update_layout(barmode='stack')
-        st.plotly_chart(fig)
-    def plot_hist(var, cluster_num):
-        cluster_df = df[df.kmed == cluster_num]
-        fig = px.histogram(cluster_df, x=var)
-        st.plotly_chart(fig)
+    #=========================================================================    
+    # load data and impute missing values
+    df = load_data()
+    # run K-medoid cluster model w/ K = 5
+    df, group_df, clusters, dmat = kmed_cluster(df, 5)
+    st.sidebar.title("Model")
     #=========================================================================
     cols = [
         "Gender",
@@ -465,7 +392,7 @@ def main():
         "Iron",
         "Sat",
         "Ferritin",
-        "Nodule*",
+        "Nodule",
         "PS", 
         "Encephalopathy", 
         "Ascites",
@@ -500,50 +427,90 @@ def main():
         ]
     #=========================================================================
     var_dict = {
-        "Gender": "0=female|1=male",
-        "HBsAg": "Hepatitis B surface Antigen",
-        "HBeAg": "Hepatitis B e Antigen",
-        "HBcAb": "Hep B core Antibody",
-        "HCVAb" : "Hep C Virus Antibody",
-        "Endemic" : "Endemic Countries",
-        "Hemochro" : "Hemochromatosis",
-        "AHT" : "Arterial Hypertension",
-        "CRI" : "Chronic Renal Insufficiency",
-        "HIV" : "Human Immunodeficiency Virus",
-        "NASH" : "Nonalcoholic Steatohepatitis",
-        "Varices" : "Esophageal Varices",
-        "Spleno" :  "Splenomegaly",
-        "PHT" : "Portal Hypertension",
-        "PVT" : "Portal Vein Thrombosis",
-        "Metastasis" : "Liver Metastasis",
-        "Hallmark" : "Radiological Hallmark",
-        "Age" : "Age at diagnosis",
-        "Grams_day" : "Grams of Alcohol per day",
-        "Packs_year" : "Packs of cigarets per year",
-        "PS" : "Performance Status:\n0=Active\n1=Restricted\n2=Ambulatory\n3=Selfcare\n4=Disabled\n5=Dead",
-        "Encephalopathy" : "Encephalopathy degree:\n1=None\n2=Grade I/II\n3=Grade III/IV",
-        "Ascites" : "Ascites degree:\n1=None\n2=Mild\n3=Moderate to Severe",
-        "INR" : "International Normalised Ratio",
-        "AFP" : "Alpha-Fetoprotein (ng/mL)",
-        "Hemoglobin" : "(g/dL)",
-        "MCV" : "Mean Corpuscular Volume (fl)",
-        "Leucocytes" : "(G/L)",
-        "Platelets" : "(G/L)",
-        "Albumin" : "(mg/dL)",
-        "Total_Bil" : "Total Bilirubin (mg/dL)",
-        "ALT" : "Alanine transaminase (U/L)",
-        "AST" : "Aspartate transaminase (U/L)",
-        "GGT" : "Gamma glutamyl transferase (U/L)",
-        "ALP" : "Alkaline phosphatase (U/L)",
-        "TP" : "Total Proteins (g/dL)",
-        "Creatinine" : "(mg/dL)",
-        "Nodule" : "Number of Nodules",
-        "Major_Dim" : "Major dimension of nodule (cm)",
-        "Dir_Bil" : "Direct Bilirubin (mg/dL)",
-        "Iron" : "(mcg/dL)",
-        "Sat" : "Oxygen Saturation (%)",
-        "Ferritin" : "(ng/mL)",
-        "Class" : "1=lives\n0=dies\n@ 1 year",
+        "Gender": ["0=female|1=male"],
+        "HBsAg": ["Hepatitis B surface Antigen"],
+        "HBeAg": ["Hepatitis B e Antigen"],
+        "HBcAb": ["Hep B core Antibody"],
+        "HCVAb" : ["Hep C Virus Antibody"],
+        "Endemic" : ["Endemic Countries"],
+        "Hemochro" : ["Hemochromatosis"],
+        "AHT" : ["Arterial Hypertension"],
+        "CRI" : ["Chronic Renal Insufficiency"],
+        "HIV" : ["Human Immunodeficiency Virus"],
+        "NASH" : ["Nonalcoholic Steatohepatitis"],
+        "Varices" : ["Esophageal Varices"],
+        "Spleno" :  ["Splenomegaly"],
+        "PHT" : ["Portal Hypertension"],
+        "PVT" : ["Portal Vein Thrombosis"],
+        "Metastasis" : ["Liver Metastasis"],
+        "Hallmark" : ["Radiological Hallmark"],
+        "Age" : ["Age at diagnosis"],
+        "Grams_day" : ["Grams of Alcohol per day"],
+        "Packs_year" : ["Packs of cigarets per year"],
+        "PS" : ["Performance Status:\n0=Active\n1=Restricted\n2=Ambulatory\n3=Selfcare\n4=Disabled\n5=Dead"],
+        "Encephalopathy" : ["Encephalopathy degree:\n1=None\n2=Grade I/II\n3=Grade III/IV"],
+        "Ascites" : ["Ascites degree:\n1=None\n2=Mild\n3=Moderate to Severe"],
+        "INR" : [
+            "International Normalised Ratio. This blood test looks to see how well your blood clots.\n\nThe international normalized ratio (INR) is a standardized number that's figured out in the lab. If you take blood thinners, also called anti-clotting medicines or anticoagulants, it may be important to check your INR. The INR is found using the results of the prothrombin time (PT) test. This measures the time it takes for your blood to clot. The INR is an international standard for the PT.",
+            ],
+        "AFP" : [
+            "Alpha-Fetoprotein; An AFP tumor marker test is a blood test that measures the levels of AFP in adults. Tumor markers are substances made by cancer cells or by normal cells in response to cancer in the body. High levels of AFP can be a sign of liver cancer or cancer of the ovaries or testicles, as well as noncancerous liver diseases such as cirrhosis and hepatitis.\n\nHigh AFP levels don't always mean cancer, and normal levels don't always rule out cancer. So an AFP tumor marker test is not usually used by itself to screen for or diagnose cancer. But it can help diagnose cancer when used with other tests. The test may also be used to help monitor the effectiveness of cancer treatment and to see if cancer has returned after you've finished treatment.",
+            ],
+        "Hemoglobin" : [
+            "Hemoglobin is the protein molecule in red blood cells that carries oxygen from the lungs to the body's tissues and returns carbon dioxide from the tissues back to the lungs. Higher than normal hemoglobin levels can be seen in people living at high altitudes and in people who smoke and infrequently with certain tumors.",
+            ],
+        "MCV" : [
+            "Mean Corpuscular Volume; An MCV blood test measures the average size of your red blood cells. Larger than normal RBCs may indicate liver disease.",
+            ],
+        "Leucocytes" : [
+            "white blood cells",
+            ],
+        "Platelets" : [
+            "Platelets, or thrombocytes, are small, colorless cell fragments in our blood that form clots and stop or prevent bleeding.",
+            ],
+        "Albumin" : [
+            "Albumin is a protein made by your liver. Albumin helps keep fluid in your bloodstream so it doesn't leak into other tissues. It is also carries various substances throughout your body, including hormones, vitamins, and enzymes. Low albumin levels can indicate a problem with your liver or kidneys.",
+            ],
+        "Total_Bil" : [
+            "Total Bilirubin; This is a blood test that measures the amount of a substance called bilirubin. This test is used to find out how well your liver is working. It is often part of a panel of tests that measure liver function. A small amount of bilirubin in your blood is normal, but a high level may be a sign of liver disease.", 
+            ],
+        "ALT" : [
+            "Alanine aminotransferase (ALT) is an enzyme found mostly in the cells of the liver and kidney. Much smaller amounts of it are also found in the heart and muscles. Normally, ALT levels in blood are low, but when the liver is damaged, ALT is released into the blood and the level increases.",
+            ],
+        "AST" : [
+            "Aspartate aminotransferase (AST) is an enzyme found in cells throughout the body but mostly in the heart and liver and, to a lesser extent, in the kidneys and muscles. In healthy individuals, levels of AST in the blood are low. When liver or muscle cells are injured, they release AST into the blood.",
+            ],
+        "GGT" : [
+            "Gamma glutamyl transferase (GGT) is an enzyme found in cell membranes of many tissues mainly in the liver, kidney, and pancreas. [1] It is also found in other tissues including intestine, spleen, heart, brain, and seminal vesicles. The highest concentration is in the kidney, but the liver is considered the source of normal enzyme activity.",
+            ],
+        "ALP" : [
+            "Alkaline phosphatase; The alkaline phosphatase test (ALP) is used to help detect liver disease or bone disorders. It is often ordered along with other tests, such as a gamma-glutamyl transferase (GGT) test and/or as part of a liver panel. In conditions affecting the liver, damaged liver cells release increased amounts of ALP into the blood.",
+            ],
+        "TP" : [
+            "The total protein test measures the total amount of two classes of proteins found in the fluid portion of your blood. These are albumin and globulin. Proteins are important parts of all cells and tissues. Albumin helps prevent fluid from leaking out of blood vessels. Low levels can be indicative of liver disease.",
+            ],
+        "Creatinine" : [
+            "Creatinine is critically important in assessing renal function because it has several interesting properties. In blood, it is a marker of glomerular filtration rate;",
+            ],
+        "Nodule" : [
+            "Number of Nodules",
+            ],
+        "Major_Dim" : [
+            "Major dimension of nodule",
+            ],
+        "Dir_Bil" : [
+            "Direct Bilirubin; Bilirubin is a tetrapyrrole and a breakdown product of heme catabolism. Most bilirubin (70%-90%) is derived from hemoglobin degradation and, to a lesser extent, from other hemo proteins. In the serum, bilirubin is usually measured as both direct bilirubin (DBil) and total-value bilirubin",
+            ],
+        "Iron" : [
+            "The amount of circulating iron bound to transferrin is reflected by the serum iron level.",
+            ],
+        "Sat" : [
+            "Oxygen Saturation",
+            ],
+        "Ferritin" : [
+            "Ferritin is the cellular storage protein for iron. It is present in small concentrations in blood, and the serum ferritin concentration normally correlates well with total-body iron stores, making its measurement important in the diagnosis of disorders of iron metabolism.",
+            ],
+        "Class" : ["1=lives\n0=dies\n@ 1 year"],
         }
     #=========================================================================
     plot_dict = {
@@ -624,17 +591,230 @@ def main():
             "Nodule",
         ]
     #=========================================================================
-    # load data and impute missing values
-    df = load_data()
-    # run K-medoid cluster model w/ K = 5
-    df, group_df, clusters, dmat = kmed_cluster(df, 5)
-    st.sidebar.title("Model")
-    
+    lab_values = {
+        "INR" : [
+            0,
+            1.1,
+            "",
+            ],
+        "AFP" : [
+            0,
+            10,
+            "ng/mL",
+            ],
+        "Hemoglobin" : [
+            12,
+            18,
+            "g/dL",
+            ],
+        "MCV" : [
+            80,
+            100,
+            "fl",
+            ],
+        "Leucocytes" : [
+            4,
+            11,
+            "G/L",
+
+            ],
+        "Platelets" : [
+            150000,
+            450000,
+            "G/L",
+            ],
+        "Albumin" : [
+            3.4,
+            5.4,
+            "mg/dL",
+            ],
+        "Total_Bil" : [
+            0,
+            1,
+            "mg/dL",
+
+            ],
+        "ALT" : [
+            29,
+            33,
+            "U/L",
+            ],
+        "AST" : [
+            0,
+            35,
+            "U/L",
+            ],
+        "GGT" : [
+            5,
+            40,
+            "U/L",
+            ],
+        "ALP" : [
+            44,
+            147,
+            "U/L",
+            ],
+        "TP" : [
+            6,
+            8.3,
+            "g/dL",
+             ],
+        "Creatinine" : [
+            0.5,
+            1.2,
+            "mg/dL",
+            ],
+        "Dir_Bil" : [
+            0.1,
+            0.3,
+            "mg/dL",
+            ],
+        "Iron" : [
+            60,
+            180,
+            "mcg/dL",
+            ],
+        "Sat" : [
+            95,
+            100,
+            "%",
+            ],
+        "Ferritin" : [
+            10,
+            300,
+            "ng/mL",
+            ],
+        }
+    #=========================================================================
+    # CLUSTERING FUNCTIONS
+    def kmed_predict(df, X, k=5):
+        # generate k random indices from distance matrix
+        # df = df.drop(columns="Class") 
+        # X = X.drop(columns="kmed")
+        # X = pd.DataFrame(X, columns=df.columns)
+        df = df.append(X)
+        X_scaled = scale_df(df)
+        dmat = create_dmat(X_scaled)
+
+        np.random.seed(42)
+        n_rows = dmat.shape[0]
+        init_medoids = np.random.randint(0, n_rows, k)
+        
+        # init_medoids
+        kmed = kmedoids(dmat, initial_index_medoids=init_medoids, data_type="distance_matrix")
+        kmed.process()
+
+        medoid_idxs = kmed.get_medoids()
+        # medoid_idxs
+
+        labels = kmed.predict(dmat)
+        df["kmed"] = labels
+        # print(df.kmed.value_counts())
+        # group_df = df.groupby("kmed").mean().sort_values("Class").style.background_gradient()
+
+        # casting kmed clusters to strings
+        df.kmed = df.kmed.astype(str)
+
+        # reordering cluster numbers by mortality rate
+        df.loc[(df.kmed == "3"), "kmed"] = 4
+        df.loc[(df.kmed == "0"), "kmed"] = 2
+        df.loc[(df.kmed == "1"), "kmed"] = 3
+        df.loc[(df.kmed == "4"), "kmed"] = 1
+        df.loc[(df.kmed == "2"), "kmed"] = 0
+
+        group_df = df.groupby("kmed").mean().style.background_gradient()
+        # counts = df.kmed.value_counts().index.sort_values(ascending=False)
+        # group_df["count"] = counts
+        output = df.head(-1)
+        return df
+
+    # PLOTTING FUNCTIONS
+    def plot_boxplot(var):
+        fig = go.Figure()
+        # for i in range(df.kmed.unique()):
+        fig.add_trace(
+            go.Box(
+                y=df[var],
+                x=df.kmed,
+                boxpoints=False,  # no data points
+                #     marker_color='rgb(9,56,125)',
+                #     line_color='rgb(9,56,125)'
+            )
+        )
+        
+        # add min and max range lines for lab values
+        if var in lab_values.keys():
+            fig.update_layout(
+            title=f"{var} Values of Risk Clusters",
+            xaxis_title = "Risk Clusters",
+            yaxis_title = f"{var} values ({lab_values[var][2]})"
+            )
+            fig.add_hrect(y0=lab_values[var][0], y1=lab_values[var][1], line_width=0, fillcolor="green", opacity=0.2)
+
+        else:
+            fig.update_layout(
+            title=f"{var} Values of Risk Clusters",
+            xaxis_title = "Risk Clusters",
+            yaxis_title = f"{var}"
+            )
+        st.plotly_chart(fig)
+    def plot_violin(var):
+        fig = go.Figure()
+        fig.add_trace(
+            go.Violin(
+                y=df[var],
+                x=df.kmed,
+            )
+        )
+        fig.update_traces(meanline_visible=True)
+        
+        # add min and max range lines for lab values
+        if var in lab_values.keys():
+            fig.update_layout(
+            title=f"{var} Values of Risk Clusters",
+            xaxis_title = "Risk Clusters",
+            yaxis_title = f"{var} values ({lab_values[var][2]})"
+        )
+            fig.add_hrect(y0=lab_values[var][0], y1=lab_values[var][1], line_width=0, fillcolor="green", opacity=0.2)
+        else:
+            fig.update_layout(
+            title=f"{var} Values of Risk Clusters",
+            xaxis_title = "Risk Clusters",
+            yaxis_title = f"{var}"
+        )
+        st.plotly_chart(fig)
+    def plot_barplot(var):
+        fig = go.Figure(data=[
+        ])
+        if var in lab_values.keys() or var in cat_cols:
+            for val in df[var].unique():
+                fig.add_trace(go.Bar(name=f"{var} = {val}", x=df.kmed, y=df[df[var] == val][var]))
+            fig.update_layout(barmode='stack')
+        elif var == "Gender":
+            fig.add_trace(go.Bar(name="female", x=df.kmed, y=(df["Gender"] == 1)))
+            fig.add_trace(go.Bar(name="male", x=df.kmed, y=(df["Gender"] == 0)))
+        else:
+            fig.add_trace(go.Bar(name="No",x=df.kmed, y=(df[var] == 1)))
+            fig.add_trace(go.Bar(name="Yes",x=df.kmed, y=(df[var] == 0)))
+        fig.update_layout(
+            title=f"{var} by Risk Cluster",
+            xaxis_title="Risk Cluster",
+            yaxis_title=f"{var}"
+        )
+        st.plotly_chart(fig)
+    def plot_hist(var, cluster_num):
+        cluster_df = df[df.kmed == cluster_num]
+        fig = px.histogram(cluster_df, x=var)
+        st.plotly_chart(fig)
+    #=========================================================================
     option = st.sidebar.selectbox("Model Options", ("Objective", "Data", "Cluster Analysis", "Cluster Predict", "Source"))
     #=========================================================================
     if option == "Data":
         st.subheader("Dataset")
-        st.write(df.head(10))
+        if st.sidebar.checkbox("full data", False):
+            st.write(df)
+        else:
+            st.write(df.head(10))
         st.write(f"Number of samples: {df.shape[0]}")
         # st.write()
         st.subheader("Variables")
@@ -776,9 +956,11 @@ def main():
         "Nodule" : "- higher risk cluster, bottom heavy distribution",
         }
     #=========================================================================
+    interest_vars = ["Ferritin", "Dir_Bil", "GGT", "ALP", "HBcAb", "HCVAb", "Smoking", "AHT", "Metastasis", ]
+    #=========================================================================
     if option == "Cluster Analysis":
         st.subheader("Cluster Analysis")
-        st.write(f"Data Class Mean: {df.Class.mean()}")
+        # st.write(f"Data Class Mean: {df.Class.mean()}")
         # plot_type = st.sidebar.radio("Plot Type", ["Boxplot", "Violin"])
 
         # options for overall chart options
@@ -791,50 +973,55 @@ def main():
             st.write(df.kmed.value_counts())
         if st.sidebar.checkbox("Plot Clusters", False):
             df_copy = df.copy()
+            for cat in cats:
+                df_copy[cat] = df_copy[cat].astype(str)
+            # fig, ax = plt.subplots()
+            model = prince.FAMD()
+            famd = model.fit(df_copy)
+            coordinates = famd.transform(df_copy)
 
-        for cat in cats:
-            df_copy[cat] = df_copy[cat].astype(str)
-        # fig, ax = plt.subplots()
-        model = prince.FAMD()
-        famd = model.fit(df_copy)
-        coordinates = famd.transform(df_copy)
-
-        famd.plot_row_coordinates(df_copy, color_labels=df_copy.kmed)
-        st.pyplot()
+            famd.plot_row_coordinates(df_copy, color_labels=df_copy.kmed)
+            st.pyplot()
+        if st.sidebar.checkbox("Interest Vars", False):
+            interest_vars
 
         # option for var cluster visualization
         plot_var = st.sidebar.selectbox("Variable", analysis_vars)
         # option for viewing information from analysis var dict about var analysis notes
         notes = st.sidebar.checkbox("Cluster Notes")
         
-        if plot_var in num_vars:
-            st.sidebar.header("Plot Type:")
-            box = st.sidebar.checkbox("Boxplot")
-            violin = st.sidebar.checkbox("Violin Plot")
-            hist = st.sidebar.checkbox("Histogram")
-            if hist:
-                cluster_num = st.sidebar.selectbox("Cluster #", df.kmed.unique())
-            if st.sidebar.button("Plot", False):
-                st.subheader(plot_var)
-                st.write(var_dict[plot_var])
-                if notes:
-                    st.subheader("Analysis Notes")
-                    st.write(analysis_dict[plot_var])
-                if violin:
-                    plot_violin(plot_var)
-                if box:
-                    plot_boxplot(plot_var)
+        if plot_var not in cat_cols:
+            if plot_var in num_vars:
+                st.sidebar.header("Plot Type:")
+                box = st.sidebar.checkbox("Boxplot")
+                violin = st.sidebar.checkbox("Violin Plot")
+                hist = st.sidebar.checkbox("Histogram")
                 if hist:
-                    st.write(f"Cluster {cluster_num}, {plot_var}")
-                    plot_hist(plot_var, cluster_num)
+                    cluster_num = st.sidebar.selectbox("Cluster #", df.kmed.unique())
+                if st.sidebar.button("Plot", False):
+                    st.subheader(plot_var)
+                    st.write(var_dict[plot_var][0])
+                    if notes:
+                        st.subheader("Analysis Notes")
+                        st.write(analysis_dict[plot_var])
+                    if violin:
+                        plot_violin(plot_var)
+                    if box:
+                        plot_boxplot(plot_var)
+                    if hist:
+                        st.write(f"Cluster {cluster_num}, {plot_var}")
+                        plot_hist(plot_var, cluster_num)
 
-                # if plot_var == "AFP":
-                    # st.image(\U'c:\Users\tayma\github\hcc_clustering\afp_table.png')
+                    # if plot_var == "AFP":
+                        # st.image(\U'c:\Users\tayma\github\hcc_clustering\afp_table.png')
                 
         else:
             if st.sidebar.button("Plot", False):
                 plot_barplot(plot_var)
-        info_var = st.sidebar.selectbox("Var Info", cols)
+
+        # sidebar selectbox with info about normal ranges/values for health data
+        # info_var = st.sidebar.selectbox("Var Info", cols)
+        
     #=========================================================================
     if option == "Objective":
         st.subheader("Clustering Model Objective")
