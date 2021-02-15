@@ -1,13 +1,10 @@
-# TODO: finish var_dict with normal range values and description/possible indicators
 # TODO: pattern finding function for cluster vars
-# TODO: cluster model tab
-# TODO: create checkbox for var description/normal range info in cluster analysis
 # TODO: possibly look at DR on liver panel values
 
 # %reload_ext nb_black
 import pandas as pd
 import numpy as np
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 import plotly
 import plotly.express as px
 import plotly.graph_objects as go
