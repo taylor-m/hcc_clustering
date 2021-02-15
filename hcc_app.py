@@ -4,7 +4,7 @@
 # %reload_ext nb_black
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
 import plotly
 import plotly.express as px
 import plotly.graph_objects as go
@@ -425,20 +425,20 @@ def main():
     #=========================================================================
     var_dict = {
         "Gender": ["0=female|1=male"],
-        "HBsAg": ["Hepatitis B surface Antigen"],
-        "HBeAg": ["Hepatitis B e Antigen"],
-        "HBcAb": ["Hep B core Antibody"],
-        "HCVAb" : ["Hep C Virus Antibody"],
+        "HBsAg": ["Hepatitis B surface Antigen\nHBsAg is the surface antigen of the hepatitis B virus. It indicates current hepatitis B infection.[10] An antigen is a protein that stimulates an immune system response, causing your body to produce antibodies to fight invaders. In hepatitis B, it's common to test for the hepatitis B surface antigen (HBsAg) and hepatitis B core antigen (HBcAg). These antigens are attached to the inside and the outside of the virus.[11]"],
+        "HBeAg": ["Hepatitis B e Antigen\nHBeAg stands for hepatitis B e-antigen. This antigen is a protein from the hepatitis B virus that circulates in infected blood when the virus is actively replicating. The presence of HBeAg suggests that the person is infectious and is able to spread the virus to other people.[9]"],
+        "HBcAb": ["Hep B core Antibody\nTotal hepatitis B core antibody (anti-HBc): Appears at the onset of symptoms in acute hepatitis B and persists for life. The presence of anti-HBc indicates previous or ongoing infection with hepatitis B virus in an undefined time frame. IgM antibody to hepatitis B core antigen (IgM anti-HBc)[8]"],
+        "HCVAb" : ["Hep C Virus Antibody\nWhat is hepatitis C virus antibody? A reactive or positive antibody test means you have been infected with the hepatitis C virus at some point in time. Once people have been infected, they will always have antibodies in their blood. This is true if they have cleared the virus, have been cured, or still have the virus in their blood.[7]"],
         "Endemic" : ["Endemic Countries"],
-        "Hemochro" : ["Hemochromatosis"],
+        "Hemochro" : ["Hemochromatosis\nHemochromatosis is the abnormal accumulation of iron in parenchymal organs, leading to organ toxicity. It is the most common autosomal recessive genetic disorder and the most common cause of severe iron overload.\nClinical manifestations of hemochromatosis include the following:\n\tLiver disease (hepatomegaly, 13%; cirrhosis, 13%, usually late in the disease)[6]"],
         "AHT" : ["Arterial Hypertension"],
-        "CRI" : ["Chronic Renal Insufficiency"],
+        "CRI" : ["Chronic Renal Insufficiency\nRenal insufficiency is poor function of the kidneys that may be due to a reduction in blood-flow to the kidneys caused by renal artery disease."],
         "HIV" : ["Human Immunodeficiency Virus"],
-        "NASH" : ["Nonalcoholic Steatohepatitis"],
-        "Varices" : ["Esophageal Varices"],
-        "Spleno" :  ["Splenomegaly"],
-        "PHT" : ["Portal Hypertension"],
-        "PVT" : ["Portal Vein Thrombosis"],
+        "NASH" : ["Nonalcoholic Steatohepatitis\nThe term nonalcoholic steatohepatitis (NASH) was first coined by Dr. Ludwig 3 decades ago to describe a unique entity characterized by fatty changes with lobular hepatitis in the absence of a history of alcoholism\nAt present, nonalcoholic fatty liver disease (NAFLD) has become the most common liver disease in the United States and, indeed, worldwide."],
+        "Varices" : ["Esophageal Varices\nEsophageal varices are enlarged veins in the lower esophagus. They're often due to obstructed blood flow through the portal vein, which carries blood from the intestine and spleen to the liver. Esophageal varices are abnormal, enlarged veins in the tube that connects the throat and stomach (esophagus)[5]"],
+        "Spleno" :  ["Splenomegaly\nSplenomegaly is a condition that occurs when your spleen becomes enlarged. It's also commonly referred to as enlarged spleen or spleen enlargement. The spleen is a part of your lymphatic system. It helps the immune system by storing white blood cells and helping in the creation of antibodies.[3]\nMany conditions — including infections, liver disease and some cancers — can cause an enlarged spleen.[4]"],
+        "PHT" : ["Portal Hypertension\nPortal hypertension is an increase in the pressure within the portal vein, which carries blood from the digestive organs to the liver. The most common cause is cirrhosis of the liver, but thrombosis (clotting) might also be the cause.[2]"],
+        "PVT" : ["Portal Vein Thrombosis\nPortal vein thrombosis is blockage or narrowing of the portal vein (the blood vessel that brings blood to the liver from the intestines) by a blood clot.\nFluid accumulation in the abdomen (called ascites) is not common. But it may develop when people also have liver congestion (backup of blood in the liver) or liver damage, such as severe scarring of the liver (cirrhosis), or when large amounts of fluids are given intravenously to treat massive bleeding from ruptured varicose veins in the esophagus or stomach. If portal vein thrombosis develops in people with cirrhosis, their condition deteriorates.[1]"],
         "Metastasis" : ["Liver Metastasis"],
         "Hallmark" : ["Radiological Hallmark"],
         "Age" : ["Age at diagnosis"],
@@ -909,15 +909,15 @@ def main():
         )
     #=========================================================================
     analysis_dict = {
-        "Ferritin" : "- ~12-112% lower mean levels\n- stratified level distirbution compared to other clusters",
+        "Ferritin" : "- ~12-112% higher mean levels",
         "Iron" : "- significantly higher iron level distribution in high risk cluster\n- lower iron level distributions in medium risk clusters",
-        "Dir_Bil" : "- higher levels in risk clusters 0 and 1\n- similar levels in risk clusters 2-4",
+        "Dir_Bil" : "- highest levels in samples in risk cluster 4\n- cluster 3 shows slightly higher levels\n- clusters 0-2 have low distributions",
         "Major_Dim" : "indistinct",
         "Gender": "",
         "HBsAg": "",
         "HBeAg": "",
-        "HBcAb": "",
-        "HCVAb" : "",
+        "HBcAb": "- the highest risk group has a higher ratio of samples without the HBcAb than the others",
+        "HCVAb" : "- the highest risk group has a higher ratio of samples without the HBcAb than the others",
         "Endemic" : "",
         "Hemochro" : "",
         "AHT" : "",
@@ -946,8 +946,8 @@ def main():
         "Total_Bil" : "- risk clusters 2-4 all show bottom heavy total bilirubin levels\n- clusters 2 has similar levels yet is a lower risk group",
         "ALT" : "inconclusive",
         "AST" : "inconclusive",
-        "GGT" : "- higher risk groups have bottom heavy level distributions",
-        "ALP" : "- higher risk groups have bottom heavy level distributions",
+        "GGT" : "- lower risk groups have bottom heavy distributions",
+        "ALP" : "- higher risk groups have higher median levels & generally higher distributions",
         "TP" : "inconclusive",
         "Creatinine" : "indistinct",
         "Nodule" : "- higher risk cluster, bottom heavy distribution",
@@ -987,33 +987,35 @@ def main():
         # option for viewing information from analysis var dict about var analysis notes
         notes = st.sidebar.checkbox("Cluster Notes")
         
-        if plot_var not in cat_cols:
-            if plot_var in num_vars:
-                st.sidebar.header("Plot Type:")
-                box = st.sidebar.checkbox("Boxplot")
-                violin = st.sidebar.checkbox("Violin Plot")
-                hist = st.sidebar.checkbox("Histogram")
+        if plot_var not in cat_vars:
+            st.sidebar.header("Plot Type:")
+            box = st.sidebar.checkbox("Boxplot")
+            violin = st.sidebar.checkbox("Violin Plot")
+            hist = st.sidebar.checkbox("Histogram")
+            if hist:
+                cluster_num = st.sidebar.selectbox("Cluster #", df.kmed.unique())
+            if st.sidebar.button("Plot", False):
+                st.subheader(plot_var)
+                st.write(var_dict[plot_var][0])
+                if notes:
+                    st.subheader("Analysis Notes")
+                    st.write(analysis_dict[plot_var])
+                if violin:
+                    plot_violin(plot_var)
+                if box:
+                    plot_boxplot(plot_var)
                 if hist:
-                    cluster_num = st.sidebar.selectbox("Cluster #", df.kmed.unique())
-                if st.sidebar.button("Plot", False):
-                    st.subheader(plot_var)
-                    st.write(var_dict[plot_var][0])
-                    if notes:
-                        st.subheader("Analysis Notes")
-                        st.write(analysis_dict[plot_var])
-                    if violin:
-                        plot_violin(plot_var)
-                    if box:
-                        plot_boxplot(plot_var)
-                    if hist:
-                        st.write(f"Cluster {cluster_num}, {plot_var}")
-                        plot_hist(plot_var, cluster_num)
+                    st.write(f"Cluster {cluster_num}, {plot_var}")
+                    plot_hist(plot_var, cluster_num)
 
-                    # if plot_var == "AFP":
-                        # st.image(\U'c:\Users\tayma\github\hcc_clustering\afp_table.png')
-                
+                # if plot_var == "AFP":
+                    # st.image(\U'c:\Users\tayma\github\hcc_clustering\afp_table.png')
         else:
             if st.sidebar.button("Plot", False):
+                st.write(var_dict[plot_var][0])
+                if notes:
+                    st.subheader("Analysis Notes")
+                    st.write(analysis_dict[plot_var])
                 plot_barplot(plot_var)
 
         # sidebar selectbox with info about normal ranges/values for health data
