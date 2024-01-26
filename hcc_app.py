@@ -1,10 +1,8 @@
 # TODO: pattern finding function for cluster vars
 # TODO: possibly look at DR on liver panel values
-
 # %reload_ext nb_black
 import pandas as pd
 import numpy as np
-from matplotlib import pyplot as plt
 import plotly
 import plotly.express as px
 import plotly.graph_objects as go
@@ -977,8 +975,9 @@ def main():
             famd = model.fit(df_copy)
             coordinates = famd.transform(df_copy)
 
-            famd.plot_row_coordinates(df_copy, color_labels=df_copy.kmed)
-            st.pyplot()
+            row_coord = famd.row_coordinates(df_copy)
+            fig = famd.plot(df_copy, x_component=0, y_component=1)   
+            st.pyplot(fig)     
         if st.sidebar.checkbox("Interest Vars", False):
             interest_vars
 
