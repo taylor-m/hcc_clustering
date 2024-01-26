@@ -977,7 +977,7 @@ def main():
 
             row_coord = famd.row_coordinates(df_copy)
             fig = famd.plot(df_copy, x_component=0, y_component=1)   
-            st.pyplot(fig)     
+            st.altair_chart(fig)     
         if st.sidebar.checkbox("Interest Vars", False):
             interest_vars
 
