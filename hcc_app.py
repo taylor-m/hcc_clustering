@@ -807,9 +807,9 @@ def main():
     if option == "Data":
         st.subheader("Dataset")
         if st.sidebar.checkbox("full data", False):
-            st.write(df)
+            st.dataframe(df)
         else:
-            st.write(df.head(10))
+            st.dataframe(df.head(10))
         st.write(f"Number of samples: {df.shape[0]}")
         # st.write()
         st.subheader("Variables")
